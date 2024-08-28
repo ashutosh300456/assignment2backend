@@ -16,6 +16,13 @@ app.use(cors({
   credentials: true  // Allow cookies if necessary
 }));
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://66cf5c646e3843af33ff6709--startling-starlight-1be61e.netlify.app");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 
 
 
