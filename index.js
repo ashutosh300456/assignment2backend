@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 // Allowed origins array
 const allowedOrigins = [
   'https://assignment2backend.onrender.com',
-  'https://66cf5c646e3843af33ff6709--startling-starlight-1be61e.netlify.app'
+  'https://66cf66daba7508b62b9f370a--startling-starlight-1be61e.netlify.app'
 ];
 
 // Custom CORS middleware
