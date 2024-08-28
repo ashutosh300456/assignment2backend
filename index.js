@@ -11,7 +11,7 @@ const cors = require('cors');
 const app = express();
 const PORT=process.env.PORT || 5000
 app.use(cors({
-  origin: ['https://66cf30d34279216ae6103cbe--papaya-crostata-0043a5.netlify.app/', 'https://66cf2799b0001c69d2c601f8--startling-starlight-1be61e.netlify.app/login'], // No trailing slashes
+  origin: ['https://assignment2backend.onrender.com/signup', 'https://66cf2799b0001c69d2c601f8--startling-starlight-1be61e.netlify.app/login'], // No trailing slashes
   methods: 'GET,POST,PUT,DELETE', // Allowed methods
   credentials: true // Allow cookies if necessary
 }));
