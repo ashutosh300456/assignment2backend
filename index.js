@@ -11,7 +11,7 @@ const cors = require('cors');
 const app = express();
 const PORT=process.env.PORT || 5000
 app.use(cors({
-  origin: ['https://66cf2799b0001c69d2c601f8--startling-starlight-1be61e.netlify.app/',"https://66cf2799b0001c69d2c601f8--startling-starlight-1be61e.netlify.app/login",], // Yahan apne frontend ka origin daalein
+  origin: ['https://backendapp-xpvn.onrender.com/signup',"https://66cf2799b0001c69d2c601f8--startling-starlight-1be61e.netlify.app/login",], // Yahan apne frontend ka origin daalein
   methods: 'GET,POST,PUT,DELETE', // Jo methods allow karna chahte hain wo mention karein
   credentials: true // Agar cookies bhejna zaroori hai toh isko true karein
 }));
