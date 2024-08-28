@@ -1,73 +1,80 @@
 const express = require('express');
 const connectToMongo = require('./db');
 const upload = require('./upload/upload');
-const multer = require("multer");
-const { body, validationResult } = require("express-validator");
+const multer = require('multer');
+const { body, validationResult } = require('express-validator');
 const User = require('./models/user');
-const Resume = require('./models/resume');
-const fetchuser=require('./middleware/fetchuser')
-const jwt = require("jsonwebtoken");
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const app = express();
-const PORT=process.env.PORT || 5000
-app.use(cors({
-  origin: 'https://assignment2backend.onrender.com/signup', // No trailing slashes
-  methods: 'GET,POST,PUT,DELETE', // Allowed methods
-  credentials: true // Allow cookies if necessary
-}));
+const PORT = process.env.PORT || 5000;
 
+// Allowed origins array
+const allowedOrigins = [
+  'https://assignment2backend.onrender.com',
+  'https://66cf5c646e3843af33ff6709--startling-starlight-1be61e.netlify.app'
+];
 
-
-
+// Custom CORS middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 app.use(express.json());
 
 const uploader = multer({
-    storage: multer.diskStorage({}),
-    limits: { fileSize: 10 * 1024 * 1024} 
+  storage: multer.diskStorage({}),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB file size limit
 });
 
+// Connect to MongoDB
 connectToMongo();
 
+// Signup Route
 app.post('/signup', [
-    body("name", "please fill the Name field").notEmpty(),
-    body("address", "please fill the address field").notEmpty(),
-    body("age", "please fill the age field").notEmpty(),
-    body("number", "please fill the valid number").notEmpty().isLength({min:10}),
-    body("pass", "please fill the pass field").notEmpty(),
-    body("email", "please fill the Email field").isEmail()
+  body("name", "Please fill the Name field").notEmpty(),
+  body("address", "Please fill the Address field").notEmpty(),
+  body("age", "Please fill the Age field").notEmpty(),
+  body("number", "Please fill a valid number").notEmpty().isLength({ min: 10 }),
+  body("pass", "Please fill the Password field").notEmpty(),
+  body("email", "Please fill a valid Email").isEmail()
 ], async (req, res) => {
-    const error = validationResult(req);
-    let { name, address, age, number,pass,email } = req.body;
-    if (!error.isEmpty()) {
-        return res.json({ error: error.array() });
-    }
-    try {
-   let password=await User.findOne({pass:pass});
-  //  console.log(password)
-        if(password){
-            return res.json({msg:"password change this password alrady exists"});
-        }
-        let storeData = await User.create({
-            name: name,
-            address: address,
-            age: age,
-            number: number,
-            pass:pass,
-            email:email
-        });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-        let save = await storeData.save();
-        return res.json(save);
-
-    } catch (error) {
-        console.log(error);
-        return res.json({ errors: error });
+  const { name, address, age, number, pass, email } = req.body;
+  try {
+    let existingUser = await User.findOne({ pass });
+    if (existingUser) {
+      return res.status(400).json({ msg: "Password already exists, please choose a different password" });
     }
+
+    let newUser = new User({ name, address, age, number, pass, email });
+    await newUser.save();
+    res.status(201).json(newUser);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: 'Internal Server Error' });
+  }
 });
 
+// Upload Route
 app.post('/upload', uploader.single('file'), async (req, res) => {
-  const { userId } = req.body;  
+  const { userId } = req.body;
 
   if (!req.file) {
     return res.status(400).json({ msg: 'File is too large or not provided' });
@@ -78,76 +85,60 @@ app.post('/upload', uploader.single('file'), async (req, res) => {
     const fileURL = uploadDta.secure_url;
 
     // Update user document with file URL
-    const updatedUser = await User.findByIdAndUpdate(userId, { fileURL: fileURL }, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(userId, { fileURL }, { new: true });
 
-    return res.json({ uploadDta, updatedUser });
+    res.json({ uploadDta, updatedUser });
 
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ msg: error.message });
+    console.error(error);
+    res.status(500).json({ msg: 'Internal Server Error' });
   }
 });
 
-app.post(
-    "/login",
-    [
-      body("email", "enter a valid name").isEmail(),
-      body("pass", "please fil the password field").notEmpty(),
-    ],
-    async (req, res) => {
-      const error = validationResult(req);
-  
-      if (!error.isEmpty()) {
-       return res.json({ error: error.array() });
-      }
-  
-      try {
-  
-        let { pass ,email} = req.body;
-        // ye findone function hame pura ek object return karke dega jisme bo email mil jayegi uski saari field retyurn karke dega
-        let passCheck = await User.findOne({ pass:pass });
-  
-        if(!passCheck){
-          return res.json({msg:'Incorret pass'})
-        }
-        if(passCheck.email!==email){
-            return res.json({msg:'Incorret Email!'})
-        }
-        const JWT_SECRET = "anshul";
-        const userData= {
-          Id:passCheck._id 
-        }
-        const jwtToken = jwt.sign(userData, JWT_SECRET); 
-        res.json({ user: jwtToken ,id:userData,data:passCheck});
-  
-        
-      } catch (error) {
-        console.log(error);
-      }
+// Login Route
+app.post('/login', [
+  body("email", "Enter a valid email").isEmail(),
+  body("pass", "Please fill the Password field").notEmpty()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { pass, email } = req.body;
+  try {
+    let user = await User.findOne({ pass });
+    if (!user || user.email !== email) {
+      return res.status(400).json({ msg: 'Incorrect email or password' });
     }
-  )
 
-// Login required:-
-  app.post('/detail', async (req, res) => {
-    try {
-      let {pass}=req.body;  
-      const user = await User.findOne({pass:pass}); 
-      console.log(user)
-      if (!user) {
-        return res.status(404).send('User not found');
-      }
-       return res.json(user);
-      // console.log('User data:', user);  // Debug log
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      res.status(500).send('Internal Server Error');
+    const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Use environment variable
+    const token = jwt.sign({ id: user._id }, JWT_SECRET);
+    res.json({ token, user });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: 'Internal Server Error' });
+  }
+});
+
+// Detail Route
+app.post('/detail', async (req, res) => {
+  const { pass } = req.body;
+  try {
+    let user = await User.findOne({ pass });
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
     }
-  });
-  
-// Serve index.html for the root route
+    res.json(user);
 
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ errors: 'Internal Server Error' });
+  }
+});
 
-
+// Start Server
 app.listen(PORT, () => {
-    console.log('Server is running on port 5000');
+  console.log(`Server is running on port ${PORT}`);
 });
