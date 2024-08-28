@@ -10,7 +10,11 @@ const jwt = require("jsonwebtoken");
 const cors = require('cors');
 const app = express();
 const PORT=process.env.PORT || 5000
-app.use(cors());
+app.use(cors({
+  origin: 'https://backendapp-xpvn.onrender.com', // Yahan apne frontend ka origin daalein
+  methods: 'GET,POST,PUT,DELETE', // Jo methods allow karna chahte hain wo mention karein
+  credentials: true // Agar cookies bhejna zaroori hai toh isko true karein
+}));
 
 
 
