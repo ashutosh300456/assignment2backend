@@ -10,11 +10,7 @@ const jwt = require("jsonwebtoken");
 const cors = require('cors');
 const app = express();
 const PORT=process.env.PORT || 5000
-app.use(cors({
-  origin: 'https://assignment2backend.onrender.com/signup', // No trailing slashes
-  methods: 'GET,POST,PUT,DELETE', // Allowed methods
-  credentials: true // Allow cookies if necessary
-}));
+app.use(cors());
 
 
 
